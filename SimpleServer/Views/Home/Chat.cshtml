@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Styles{
+    <style>
+        table {
+            border: 0
+        }
+
+        .commslog-data {
+            font-family: Consolas, Courier New, Courier, monospace;
+        }
+
+        .commslog-server {
+            background-color: red;
+            color: white
+        }
+
+        .commslog-client {
+            background-color: green;
+            color: white
+        }
+    </style>
+}
+
+<div id="login">
+    <h1>Connect</h1>
+    <p>Your Name:<input type="text" id="name" /></p>
+    <p><button id="loginBtn">Login</button></p>
+</div>
+<div id="chat" style="display:none">
+    <h1>Wellcome <span id="displayName"></span></h1>
+
+    <p>To:<input type="text" id="to" /></p>
+    <p>content:<input type="text" id="content" /></p>
+    <p><button id="Send">Send</button></p>
+
+    <ul id="messages"></ul>
+</div>
+
+@section Scripts{
+    <script>
+        function send(msg) {
+            socket.send(msg);
+            console.log('Sent: ' + msg);
+            document.getElementById("content").value = "";
+        }
+
+        document.getElementById("Send").onclick = function () {
+            send(JSON.stringify({
+                To: document.getElementById("to").value,
+                Msg: document.getElementById("content").value
+            }));
+        };
+
+        document.getElementById("loginBtn").onclick = function () {
+            var name = document.getElementById("name").value;
+            var uri = "ws://" + window.location.host + "/Message?Token=" + name;
+            socket = new WebSocket(uri);
+
+            socket.onopen = function () {
+                document.getElementById("login").style.display = "none";
+                document.getElementById("chat").style.display = "block";
+                document.getElementById("displayName").innerHTML = name;
+            };
+
+            var list = document.getElementById("messages");
+            socket.onmessage = function (event) {
+                console.log('Receive: ' + event.data);
+                if (event.data === 'ping') {
+                    send('pong');
+                }
+                else {
+                    var result = JSON.parse(event.data);
+                    var name = result.From;
+                    var message = JSON.stringify(result.Msg);
+
+                    var item = document.createElement("li");
+                    item.appendChild(document.createTextNode(name + " said:" + message));
+                    list.appendChild(item);
+                }
+            };
+        };
+    </script>
+}
